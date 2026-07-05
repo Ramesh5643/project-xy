@@ -29,6 +29,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useCartStore } from "@/utils/cartStore";
+import { normalizeStorefrontConfig } from "@/app/api/utils/single-tenant";
 
 // ═══════════════════════════════════════════════════════
 //  LANGUAGE CONTEXT
@@ -1153,23 +1154,39 @@ function StorefrontClient({ storeSlug, children }) {
     localStorage.setItem("sf_lang", next);
   }, []);
 
+  const fallbackConfig = normalizeStorefrontConfig({
+    id: null,
+    name: "Single Store",
+    slug: storeSlug || "onlinebdshop",
+    theme_config: {},
+  });
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ["store-config", storeSlug],
     queryFn: async () => {
-      const res = await fetch(`/api/storefront/${storeSlug}/config`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Store not found");
-      return json.data;
+      try {
+        const res = await fetch(`/api/storefront/config`);
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error ?? "Store config could not be loaded.");
+        }
+        return normalizeStorefrontConfig(json.data ?? {});
+      } catch {
+        return fallbackConfig;
+      }
     },
     staleTime: 600000,
+    retry: false,
   });
 
+  const resolvedData = data ?? fallbackConfig;
+
   useEffect(() => {
-    if (data?.themeConfig) {
-      applyTheme(data.themeConfig);
-      injectPixels(data.themeConfig);
+    if (resolvedData?.themeConfig) {
+      applyTheme(resolvedData.themeConfig);
+      injectPixels(resolvedData.themeConfig);
     }
-  }, [data]);
+  }, [resolvedData]);
 
   // ✦ postMessage listener for iframe live preview
   useEffect(() => {
@@ -1185,10 +1202,10 @@ function StorefrontClient({ storeSlug, children }) {
 
   // Default lang from store config
   useEffect(() => {
-    if (data?.themeConfig?.default_lang && !localStorage.getItem("sf_lang")) {
-      setLang(data.themeConfig.default_lang);
+    if (resolvedData?.themeConfig?.default_lang && !localStorage.getItem("sf_lang")) {
+      setLang(resolvedData.themeConfig.default_lang);
     }
-  }, [data, setLang]);
+  }, [resolvedData, setLang]);
 
   if (isLoading)
     return (
@@ -1215,33 +1232,11 @@ function StorefrontClient({ storeSlug, children }) {
       </div>
     );
 
-  if (isError)
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#FAFAFA",
-          gap: "10px",
-        }}
-      >
-        <p style={{ fontSize: "20px", fontWeight: "800", color: "#111827" }}>
-          Store not found
-        </p>
-        <p style={{ fontSize: "14px", color: "#6B7280" }}>
-          "{storeSlug}" is unavailable.
-        </p>
-      </div>
-    );
-
-  const waPhone = data?.themeConfig?.whatsapp_number || data?.contact_phone;
+  const waPhone = resolvedData?.themeConfig?.whatsapp_number || resolvedData?.contact_phone;
 
   return (
     <LangCtx.Provider value={{ lang, t, setLang }}>
-      <StoreCtx.Provider value={{ ...data, storeSlug }}>
+      <StoreCtx.Provider value={{ ...resolvedData, storeSlug }}>
         <div
           style={{
             fontFamily: "var(--sf-font, 'Inter', system-ui, sans-serif)",
@@ -1251,9 +1246,9 @@ function StorefrontClient({ storeSlug, children }) {
             WebkitFontSmoothing: "antialiased",
           }}
         >
-          <FloatingHeader storeSlug={storeSlug} config={data} />
+          <FloatingHeader storeSlug={storeSlug} config={resolvedData} />
           <main>{children}</main>
-          <Footer storeSlug={storeSlug} config={data} t={t} />
+          <Footer storeSlug={storeSlug} config={resolvedData} t={t} />
           <WAButton phone={waPhone} />
           <StickyCart storeSlug={storeSlug} t={t} />
         </div>

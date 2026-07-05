@@ -7,6 +7,7 @@ import sql from "@/app/api/utils/sql";
 import { withTenant } from "@/app/api/middleware/withTenant";
 import { withRole } from "@/app/api/middleware/withRole";
 import { apiResponse } from "@/app/api/utils/response";
+import { resolveSingleTenantStore } from "@/app/api/utils/single-tenant";
 
 async function getHandler(_req, _rc, { storeId }) {
   const rows = await sql`

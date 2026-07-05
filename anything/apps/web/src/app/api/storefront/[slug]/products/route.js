@@ -7,16 +7,14 @@
  */
 
 import sql from "@/app/api/utils/sql";
+import { resolveSingleTenantStore } from "@/app/api/utils/single-tenant";
 
 export async function GET(request, { params }) {
   const { slug } = await params;
   const { searchParams } = new URL(request.url);
 
-  // Resolve store
-  const storeRows = await sql`
-    SELECT id FROM stores WHERE slug = ${slug} AND is_active = TRUE LIMIT 1
-  `;
-  const store = storeRows[0];
+  const store = await resolveSingleTenantStore(sql, slug);
+
   if (!store) {
     return Response.json(
       { success: false, error: "Store not found." },

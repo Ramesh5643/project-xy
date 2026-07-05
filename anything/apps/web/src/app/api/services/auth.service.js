@@ -29,6 +29,7 @@
 import argon2 from "argon2";
 import sql from "@/app/api/utils/sql";
 import { signJWT } from "@/app/api/utils/jwt";
+import { resolveSingleTenantStore } from "@/app/api/utils/single-tenant";
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -128,18 +129,7 @@ export async function login({ storeSlug, email, password }) {
   }
 
   const resolvedSlug = (storeSlug ?? "onlinebdshop").trim().toLowerCase() || "onlinebdshop";
-
-  const storeRows = await sql`
-    SELECT id, name, is_active FROM stores WHERE slug = ${resolvedSlug} LIMIT 1
-  `;
-  let store = storeRows[0];
-
-  if (!store) {
-    const fallbackRows = await sql`
-      SELECT id, name, is_active FROM stores WHERE is_active = true ORDER BY created_at ASC LIMIT 1
-    `;
-    store = fallbackRows[0];
-  }
+  const store = await resolveSingleTenantStore(sql, resolvedSlug);
 
   if (!store) {
     const err = new Error("Store not found.");

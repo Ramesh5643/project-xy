@@ -121,13 +121,14 @@ export async function POST(request) {
   }
 
   const { storeSlug, email, password } = body ?? {};
+  const normalizedStoreSlug = (storeSlug ?? "onlinebdshop").trim().toLowerCase() || "onlinebdshop";
 
   if (!email || !password) {
     return apiResponse.badRequest("email and password are all required.");
   }
 
   try {
-    const result = await login({ storeSlug, email, password });
+    const result = await login({ storeSlug: normalizedStoreSlug, email, password });
 
     // Success — clear rate limit counter for this IP
     clearRateLimit(ip);

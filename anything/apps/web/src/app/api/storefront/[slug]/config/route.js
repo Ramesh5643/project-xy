@@ -7,17 +7,15 @@
  */
 
 import sql from "@/app/api/utils/sql";
+import {
+  normalizeStorefrontConfig,
+  resolveSingleTenantStore,
+} from "@/app/api/utils/single-tenant";
 
 export async function GET(_req, { params }) {
   const { slug } = await params;
 
-  const storeRows = await sql`
-    SELECT id, name, slug, theme_config, is_active
-    FROM   stores
-    WHERE  slug = ${slug}
-    LIMIT  1
-  `;
-  const store = storeRows[0];
+  const store = await resolveSingleTenantStore(sql, slug);
 
   if (!store) {
     return Response.json(
@@ -33,6 +31,8 @@ export async function GET(_req, { params }) {
     );
   }
 
+  const normalized = normalizeStorefrontConfig(store);
+
   // Fetch active integrations (public config only — no credentials)
   const integrations = await sql`
     SELECT integration, public_config
@@ -42,7 +42,6 @@ export async function GET(_req, { params }) {
       AND  category  = 'payment'
   `;
 
-  // Return the active payment methods so checkout can render gateway buttons
   const activePaymentMethods = integrations.map((i) => ({
     id: i.integration,
     public_config: i.public_config,
@@ -54,7 +53,11 @@ export async function GET(_req, { params }) {
       storeId: store.id,
       name: store.name,
       slug: store.slug,
-      themeConfig: store.theme_config,
+      themeConfig: normalized.themeConfig,
+      seo: normalized.seo,
+      paymentConfig: normalized.paymentConfig,
+      shippingConfig: normalized.shippingConfig,
+      storefrontMeta: normalized.storefrontMeta,
       paymentMethods: activePaymentMethods,
     },
   });

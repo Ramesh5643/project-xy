@@ -7,14 +7,17 @@ export async function GET(request, { params }) {
   try {
     const [store] =
       await sql`SELECT id FROM stores WHERE slug=${slug} AND is_active=true LIMIT 1`;
-    if (!store) return apiResponse.notFound("Store not found.");
+    const resolvedStore = store ?? (await sql`SELECT id FROM stores WHERE is_active=true ORDER BY created_at ASC LIMIT 1`)[0];
+    if (!resolvedStore) return apiResponse.notFound("Store not found.");
+
+    const storeId = resolvedStore.id;
 
     const categories = await sql`
       SELECT c.id, c.name, c.slug, c.description, c.image_url, c.sort_order,
         COUNT(pc.product_id)::int AS product_count
       FROM categories c
       LEFT JOIN product_categories pc ON pc.category_id = c.id
-      WHERE c.store_id=${store.id} AND c.is_active=true
+      WHERE c.store_id=${storeId} AND c.is_active=true
       GROUP BY c.id
       ORDER BY c.sort_order ASC, c.name ASC
     `;

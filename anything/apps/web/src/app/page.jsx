@@ -1,7 +1,7 @@
 "use client";
 
-import StorefrontLayout from "./[storeSlug]/layout";
-import StorefrontHomePage from "./[storeSlug]/page";
+import StorefrontLayout from "./storefront-layout";
+import StorefrontHomePage from "./storefront-page";
 
 export default function RootPage() {
   return (

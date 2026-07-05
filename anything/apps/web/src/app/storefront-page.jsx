@@ -13,7 +13,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Package, Check, ShoppingCart, ArrowRight } from "lucide-react";
-import { useStore, useLang } from "./layout";
+import { useStore, useLang } from "./storefront-layout";
 import { useCartStore } from "@/utils/cartStore";
 import { useAnalytics } from "@/utils/useAnalytics";
 
@@ -985,12 +985,12 @@ function ProductCatalog({ storeSlug, activeCat }) {
   }, [activeCat]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["sf-products", storeSlug, dSearch, page, activeCat],
+    queryKey: ["sf-products", dSearch, page, activeCat],
     queryFn: async () => {
       const p = new URLSearchParams({ page: String(page), limit: "24" });
       if (dSearch) p.set("search", dSearch);
       if (activeCat) p.set("category", activeCat);
-      const res = await fetch(`/api/storefront/${storeSlug}/products?${p}`);
+      const res = await fetch(`/api/storefront/products?${p}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed");
       return json;
@@ -1222,9 +1222,9 @@ function HomeClient({ storeSlug }) {
   const tc = config?.themeConfig ?? {};
 
   const { data: cats = [] } = useQuery({
-    queryKey: ["sf-cats", storeSlug],
+    queryKey: ["sf-cats"],
     queryFn: async () => {
-      const res = await fetch(`/api/storefront/${storeSlug}/categories`);
+      const res = await fetch(`/api/storefront/categories`);
       const json = await res.json();
       return json.data ?? [];
     },
@@ -1232,11 +1232,9 @@ function HomeClient({ storeSlug }) {
   });
 
   const { data: featured } = useQuery({
-    queryKey: ["sf-featured", storeSlug],
+    queryKey: ["sf-featured"],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/storefront/${storeSlug}/products?limit=8&sortBy=created_at`,
-      );
+      const res = await fetch(`/api/storefront/products?limit=8&sortBy=created_at`);
       const json = await res.json();
       return json.data ?? [];
     },
