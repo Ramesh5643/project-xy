@@ -3,6 +3,7 @@
 ## 1. Local Development
 
 ```bash
+cd apps/web
 cp .env.example .env.local   # fill in required vars
 npm install
 docker compose up postgres -d  # or use Neon free tier
@@ -21,28 +22,41 @@ Open http://localhost:3000
 
 ## 3. VPS Deployment (Ubuntu 22.04+)
 
+### Prerequisites
 ```bash
 # Install Node 20 + PM2 + Nginx
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs git nginx certbot python3-certbot-nginx
 sudo npm install -g pm2
+```
 
-# Clone and build
+### Build and Deploy
+
+```bash
+# Clone and install dependencies
 git clone <repo> /var/www/platformhq && cd /var/www/platformhq
+
+# Configure environment
+cp .env.example .env.local
+nano .env.local  # Set DATABASE_URL, STRIPE_SECRET_KEY, etc.
+
+# Install and build
 npm install
-cp .env.example .env.local && nano .env.local
 npm run build
 
-# Start
-pm2 start npm --name "platformhq" -- start
+# Start with PM2
+cd apps/web
+pm2 start pm2.config.js
 pm2 save && pm2 startup
 ```
 
-### Nginx config
+### Nginx Reverse Proxy Configuration
+
 ```nginx
 server {
     listen 80;
     server_name yourdomain.com *.yourdomain.com;
+    
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;

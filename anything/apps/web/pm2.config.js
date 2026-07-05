@@ -1,18 +1,19 @@
 /**
- * PM2 Configuration — Task 4A: Production Process Manager
+ * PM2 Configuration — Production Process Manager
+ *
+ * React Router app with Hono server backend
  *
  * Run with:
+ *   npm run build
  *   pm2 start pm2.config.js
  *   pm2 save
  *   pm2 startup   ← follow the printed command to enable auto-start on reboot
  *
- * Fork mode (NOT cluster) because this is a Next.js serverless/edge app.
- * Cluster mode would break because Next.js already handles its own internal
- * worker pooling. Use multiple PM2 fork instances behind Nginx for horizontal
- * scaling on multi-core servers.
+ * Fork mode (NOT cluster) because Node.js app already handles internal
+ * request routing. Cluster mode would duplicate routes and cause conflicts.
  *
  * Instance count:
- *   - 1 instance per 1 vCPU (recommended for IO-heavy API services)
+ *   - 1 instance per 1-2 vCPU (recommended for IO-heavy API services)
  *   - Set INSTANCES env var to override (e.g. INSTANCES=2 pm2 start pm2.config.js)
  */
 
@@ -22,11 +23,11 @@ module.exports = {
   apps: [
     {
       name: "platformhq-web",
-      script: "node_modules/.bin/next",
-      args: "start",
+      script: "node_modules/.bin/react-router",
+      args: "serve",
       cwd: "./apps/web",
       instances,
-      exec_mode: "fork", // Task 4A: Fork mode, not cluster
+      exec_mode: "fork",
       watch: false, // Never watch in production — use CI/CD deploy
       max_memory_restart: "512M", // Restart if process exceeds 512MB (memory leak guard)
 
